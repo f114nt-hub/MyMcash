@@ -1,0 +1,57 @@
+name: Build Libsodium for Android
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Install Build Prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential wget tar
+
+      - name: Download and Build Libsodium
+        run: |
+          wget https://libsodium.org
+          tar -xf libsodium-1.0.20.tar.gz
+          cd libsodium-1.0.20
+
+          export ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk-bundle
+          if [ ! -d "$ANDROID_NDK_HOME" ]; then
+            export ANDROID_NDK_HOME=$(ls -d $ANDROID_SDK_ROOT/ndk/* | sort -V | tail -n 1)
+          fi
+          
+          echo "Using NDK from: $ANDROID_NDK_HOME"
+          export NDK_PLATFORM="android-24"
+          export CFLAGS="-O2 -fPIC"
+          chmod +x dist-build/*.sh
+
+          ./dist-build/android-armv8-a.sh
+          ./dist-build/android-armv7-a.sh
+
+          mkdir -p ../libsodium-binaries/arm64-v8a/lib
+          mkdir -p ../libsodium-binaries/armeabi-v7a/lib
+          mkdir -p ../libsodium-binaries/include/sodium
+
+          cp libsodium-android-armv8-a/lib/libsodium.a ../libsodium-binaries/arm64-v8a/lib/
+          cp libsodium-android-armv7-a/lib/libsodium.a ../libsodium-binaries/armeabi-v7a/lib/
+          cp libsodium-android-armv8-a/include/sodium.h ../libsodium-binaries/include/
+          cp -r libsodium-android-armv8-a/include/sodium/* ../libsodium-binaries/include/sodium/
+
+      - name: Upload Libsodium Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: libsodium-android-static-libs
+          path: libsodium-binaries/
