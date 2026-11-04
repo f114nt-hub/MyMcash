@@ -25,8 +25,8 @@ jobs:
 
       - name: Download and Build Libsodium
         run: |
-          # Perbaikan: Mengunduh langsung ke URL file tarball rilis resmi
-          wget https://libsodium.org
+          # Unduh TARBALL rilis resmi (sudah berisi ./configure, jadi tak perlu autotools/autogen)
+          wget -q "https://download.libsodium.org/libsodium/releases/libsodium-1.0.20.tar.gz" -O libsodium-1.0.20.tar.gz
           tar -xf libsodium-1.0.20.tar.gz
           cd libsodium-1.0.20
 
@@ -35,6 +35,7 @@ jobs:
           
           export NDK_PLATFORM="android-24"
           export CFLAGS="-O2 -fPIC"
+          export LIBSODIUM_FULL_BUILD=1   # pastikan crypto_sign (Ed25519) + crypto_hash_sha256 ikut ter-build
           chmod +x dist-build/*.sh
 
           ./dist-build/android-armv8-a.sh
